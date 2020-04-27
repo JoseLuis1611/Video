@@ -113,25 +113,29 @@ try{
     })
     $featuringCotainer.append($loader)
     const data = new FormData($form)
-    const peli = await getData(`${BASE_API}list_movies.json?limit=1&query_term=${data.get('name')}`) //Peticiones web dentro de una URL
+    const {
+      data: {
+        movies: pelis
+      }
+    } = await getData(`${BASE_API}list_movies.json?limit=1&query_term=${data.get('name')}`) //Peticiones web dentro de una URL
     //data.get('name') ---->  te bota el nombre de la bbusqueda que hagas.
-    const HTMLString = featuringTemplate(peli.data.movies[0])
+    const HTMLString = featuringTemplate(pelis[0])
     $featuringCotainer.innerHTML = HTMLString
-    
+
   })
 
-  const actionList = await getData(`${BASE_API}list_movies.json?genre=action`)
-  const dramaList = await getData(`${BASE_API}list_movies.json?genre=drama`)
-  const animationList = await getData(`${BASE_API}list_movies.json?genre=animation`)
+  const {data:{movies: actionList}} = await getData(`${BASE_API}list_movies.json?genre=action`)
+  const {data:{movies: dramaList}} = await getData(`${BASE_API}list_movies.json?genre=drama`)
+  const {data:{movies: animationList}} = await getData(`${BASE_API}list_movies.json?genre=animation`)
   console.log('actionList',actionList);
   console.log('terrorList',dramaList);
   console.log('dramaList',animationList);
 
 
-function videoItemTemplate(movie){
+function videoItemTemplate(movie, category){
   return (
 
-    `<div class="primaryPlaylistItem">
+    `<div class="primaryPlaylistItem" data-id="${movie.id}" data-category=${category}>
         <div class="primaryPlaylistItem-image">
           <img src="${movie.medium_cover_image}">
         </div>
@@ -152,15 +156,15 @@ function createTemplate(HTMLString){
 
 function addEventClick($element){
   $element.addEventListener('click',function(){
-    showModal()
+    showModal($element)
   })
 }
 
 
-function renderMovieList(list,$container){
+function renderMovieList(list,$container,category){
   $container.children[0].remove()
   list.forEach((movie) => {
-    const HTMLString = videoItemTemplate(movie)
+    const HTMLString = videoItemTemplate(movie,category)
     const movieElement = createTemplate(HTMLString)
     $container.append(movieElement)
     addEventClick(movieElement)
@@ -171,9 +175,9 @@ const $actionContainer = document.getElementById('action')
 const $dramaContainer = document.getElementById('drama')
 const $animationContainer = document.getElementById('animation')
 
-renderMovieList(actionList.data.movies,$actionContainer)
-renderMovieList(dramaList.data.movies,$dramaContainer)
-renderMovieList(animationList.data.movies,$animationContainer)
+renderMovieList(actionList,$actionContainer,'action')
+renderMovieList(dramaList,$dramaContainer,'drama')
+renderMovieList(animationList,$animationContainer,'animation')
 
 
 
@@ -188,9 +192,35 @@ const $modalTitle = $modal.querySelector('h1')
 const $modalImage = $modal.querySelector('img')
 const $modalDescription = $modal.querySelector('p')
 
-function showModal(){
+function findById(list,id){
+  return list.find(movie => movie.id === parseInt(id,10))
+}
+
+function findMovie(id,category){
+  switch(category){
+    case 'action' : {
+      return findById(actionList,id)
+    }
+    case 'drama': {
+      return findById(dramaList,id)
+    }
+    default: {
+      return findById(animationList,id)
+    }
+  }
+
+}
+
+function showModal($element){
   $overlay.classList.add('active')
   $modal.style.animation ='modalIn .8s forwards'
+  const id = $element.dataset.id
+  const category = $element.dataset.category
+  const data = findMovie(id,category)
+
+  $modalTitle.textContent = data.title
+  $modalImage.setAttribute('src',data.medium_cover_image)
+  $modalDescription.textContent = data.description_full
 }
 
 $hideModal.addEventListener('click', hideModal)
@@ -245,4 +275,22 @@ Para crear un elemento de html de otra manera:
   ejm:
   x[width] me daria 50
 
+  ------------------------------SEMANA 15----------------------------------
+  Formulario:
+  new FormData('$elemento')
+
+  ------------------------------SEMANA 16----------------------------------
+  destructuracion de objetos:
+  const {
+    data: {
+      movies: pelis
+    }
+  } = await getData(`${BASE_API}list_movies.json?limit=1&query_term=${data.get('name')}`)
+
+  ------------------------------SEMANA 17----------------------------------
+  hicimos los dataset como atributos dentro de los elementos html DOM
+
+  ------------------------------SEMANA 18----------------------------------
+  Hicimos encontrar por id y categoria: ejm
+  list.find(movie => movie.id === parseInt(id,10))
 */
