@@ -74,7 +74,11 @@ try{
   async function getData(url){
     const response = await fetch(url)
     const data = await response.json()
-    return data
+    if(data.data.movie_count > 0){
+      return data
+    }
+
+    throw new Error('No se encontro ningun resultado.')
   }
 
   const $form = document.getElementById('form')
@@ -113,24 +117,20 @@ try{
     })
     $featuringCotainer.append($loader)
     const data = new FormData($form)
-    const {
-      data: {
-        movies: pelis
-      }
-    } = await getData(`${BASE_API}list_movies.json?limit=1&query_term=${data.get('name')}`) //Peticiones web dentro de una URL
-    //data.get('name') ---->  te bota el nombre de la bbusqueda que hagas.
-    const HTMLString = featuringTemplate(pelis[0])
-    $featuringCotainer.innerHTML = HTMLString
+    try{
+      const {data: {movies: pelis}} = await getData(`${BASE_API}list_movies.json?limit=1&query_term=${data.get('name')}`) //Peticiones web dentro de una URL
+      //data.get('name') ---->  te bota el nombre de la bbusqueda que hagas.
+      const HTMLString = featuringTemplate(pelis[0])
+      $featuringCotainer.innerHTML = HTMLString
+    }catch(error){
+      alert(error.message)
+      $loader.remove()
+      $home.classList.remove('search-active')
+
+    }
+
 
   })
-
-  const {data:{movies: actionList}} = await getData(`${BASE_API}list_movies.json?genre=action`)
-  const {data:{movies: dramaList}} = await getData(`${BASE_API}list_movies.json?genre=drama`)
-  const {data:{movies: animationList}} = await getData(`${BASE_API}list_movies.json?genre=animation`)
-  console.log('actionList',actionList);
-  console.log('terrorList',dramaList);
-  console.log('dramaList',animationList);
-
 
 function videoItemTemplate(movie, category){
   return (
@@ -167,6 +167,10 @@ function renderMovieList(list,$container,category){
     const HTMLString = videoItemTemplate(movie,category)
     const movieElement = createTemplate(HTMLString)
     $container.append(movieElement)
+    const image = movieElement.querySelector('img')
+    image.addEventListener('load',(event) => { //Evento para que detecte que la imagen haye terminado de cargar
+      event.srcElement.classList.add('fadeIn')  //Tambien pudo ser image.classList.add('fadeIn')
+    })
     addEventClick(movieElement)
   });
 }
@@ -175,8 +179,27 @@ const $actionContainer = document.getElementById('action')
 const $dramaContainer = document.getElementById('drama')
 const $animationContainer = document.getElementById('animation')
 
+async function cacheExist(category){
+  const listName = `${category}List`
+  const cacheList = window.localStorage.getItem(listName)
+
+  if(cacheList){
+    return JSON.parse(cacheList)
+  }
+
+  const {data:{movies: data}} = await getData(`${BASE_API}list_movies.json?genre=${category}`)
+  window.localStorage.setItem(listName,JSON.stringify(data)) //Sirve para una vez hecho la peticion la guardamos en localStorage
+  return data
+}
+
+//const {data:{movies: actionList}} = await getData(`${BASE_API}list_movies.json?genre=action`)
+const actionList =  await cacheExist('action')
 renderMovieList(actionList,$actionContainer,'action')
+
+const  dramaList = await cacheExist('drama')
 renderMovieList(dramaList,$dramaContainer,'drama')
+
+const animationList = await cacheExist('animation')
 renderMovieList(animationList,$animationContainer,'animation')
 
 
@@ -293,4 +316,30 @@ Para crear un elemento de html de otra manera:
   ------------------------------SEMANA 18----------------------------------
   Hicimos encontrar por id y categoria: ejm
   list.find(movie => movie.id === parseInt(id,10))
+
+    ------------------------------SEMANA 19----------------------------------
+    image.addEventListener('load',(event) => { //Evento para que detecte que la imagen haye terminado de cargar
+      event.srcElement.classList.add('fadeIn')  //Tambien pudo ser image.classList.add('fadeIn')
+    })
+
+    ------------------------------SEMANA 20----------------------------------
+    Se hizo manejo de errores try catch
+    Creacion de errores ejemplo:
+      throw new Error('No se encontro ningun resultado.')
+
+      new : sirve para crear un nuevo console.error(
+      throw: sirve para ejecutarlo
+
+    se le puede pasar a un alert
+    alert(error.message)
+    );
+
+    ------------------------------SEMANA 21----------------------------------
+    LocalStorage
+    window.LocalStorage.setItem('nombre','jose')
+    window.LocalStorage.getItem('nombre')------->'jose'
+    window.LocalStorage.setItem('nombre',JSON.stringify({'peli': 'wonder woman'})) Si lo llamas te devuelve en forma de string
+    Puedes pasar de string a objeto
+    JSON.parse(window.LocalStorage.getItem('nombre'))
+
 */
